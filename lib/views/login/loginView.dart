@@ -5,11 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:post/util/linePainter.dart';
 import 'package:post/util/bubble_indication_painter.dart';
+import 'package:post/views/login/loginContract.dart';
 import 'package:post/util/preferences.dart';
 import 'package:post/views/home/homeView.dart';
+import 'package:post/views/login/loginPresenter.dart';
 import 'package:post/assets/postLogo.dart';
 import 'package:post/styles/styles.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:post/util/loadingIcon.dart';
 
 class Login extends StatefulWidget {
   static String routeName = "/Login";
@@ -17,14 +20,16 @@ class Login extends StatefulWidget {
   _LoginState createState() => _LoginState();
 }
 
-class _LoginState extends State<Login> {
+class _LoginState extends State<Login> implements LoginContract {
+  LoginPresenter _presenter;
   double ml = 50, mr = 50, mt = 250, mb = 700, logoHeight = 140;
-  bool logoType = true;
+  int logoType = 1;
   PageController _pageController;
   Color left = Colors.white;
   Color right = Colors.white;
   Color tabColor = style.primaryColor;
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   final _formKey = GlobalKey<FormState>();
   final FocusNode myFocusNodeEmailLogin = FocusNode();
   final FocusNode myFocusNodePasswordLogin = FocusNode();
@@ -58,6 +63,7 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
+    _presenter = LoginPresenter(this);
     splashTimeout();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -68,7 +74,7 @@ class _LoginState extends State<Login> {
   }
 
   splashTimeout() async {
-    var _duration = new Duration(seconds: 4);
+    var _duration = new Duration(seconds: 3);
     return new Timer(_duration, navigationPage);
   }
 
@@ -87,36 +93,38 @@ class _LoginState extends State<Login> {
       mt = 0;
       mb = 0;
       logoHeight = 220;
-      logoType = false;
+      logoType = 0;
     });
   }
 
   Widget createSignInEmailTextField() {
     return TextFormField(
-      focusNode: myFocusNodeEmailLogin,
-      controller: loginEmailController,
-      keyboardType: TextInputType.emailAddress,
-      maxLines: 1,
-      style: TextStyle(fontSize: 21.0, color: Colors.black),
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        icon: Icon(
-          Icons.email,
-          color: style.primaryColor,
-          size: 30.0,
+        focusNode: myFocusNodeEmailLogin,
+        controller: loginEmailController,
+        keyboardType: TextInputType.emailAddress,
+        maxLines: 1,
+        style: TextStyle(fontSize: 20.0, color: Colors.black),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          icon: Icon(
+            Icons.email,
+            color: style.primaryColor,
+            size: 30.0,
+          ),
+          contentPadding: EdgeInsets.fromLTRB(0, 0, 5, 0),
+          hintText: "Email Address",
+          hintStyle: TextStyle(fontSize: 22.0),
         ),
-        contentPadding: EdgeInsets.fromLTRB(5, 0, 5, 0),
-        hintText: "Email Address",
-        hintStyle: TextStyle(fontSize: 22.0),
-      ),
-      validator: (value) {
-        if (value.isEmpty) {
-          return 'Email cannot be empty';
-        } else {
-          return validateEmail(value);
-        }
-      },
-    );
+        validator: (value) {
+          if (value.isEmpty) {
+            return 'Email cannot be empty';
+          } else {
+            return validateEmail(value);
+          }
+        },
+        onFieldSubmitted: (String value) {
+          FocusScope.of(context).requestFocus(myFocusNodePasswordLogin);
+        });
   }
 
   Widget createSignInPasswordTextField() {
@@ -124,7 +132,7 @@ class _LoginState extends State<Login> {
       focusNode: myFocusNodePasswordLogin,
       controller: loginPasswordController,
       obscureText: _obscureTextLogin,
-      style: TextStyle(fontSize: 21.0, color: Colors.black),
+      style: TextStyle(fontSize: 20.0, color: Colors.black),
       decoration: InputDecoration(
         border: InputBorder.none,
         icon: Icon(
@@ -132,7 +140,7 @@ class _LoginState extends State<Login> {
           color: style.primaryColor,
           size: 30.0,
         ),
-        contentPadding: EdgeInsets.fromLTRB(5, 8, 5, 0),
+        contentPadding: EdgeInsets.fromLTRB(0, 8, 5, 0),
         hintText: "Password",
         hintStyle: TextStyle(fontSize: 22.0),
         suffixIcon: GestureDetector(
@@ -167,9 +175,10 @@ class _LoginState extends State<Login> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       onPressed: () {
         if (_formKey.currentState.validate()) {
-           /*  showLoading();
-            _presenter.login(_emailController.text, _passwordController.text); */
-          }
+          showLoading();
+          _presenter.login(
+              loginEmailController.text, loginPasswordController.text);
+        }
       },
     );
   }
@@ -186,56 +195,60 @@ class _LoginState extends State<Login> {
 
   Widget createSignUpDisplayNameTextField() {
     return TextFormField(
-      focusNode: myFocusNodeName,
-      controller: signupNameController,
-      keyboardType: TextInputType.text,
-      textCapitalization: TextCapitalization.words,
-      style: TextStyle(fontSize: 21.0, color: Colors.black),
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        icon: Icon(
-          Icons.person,
-          color: style.secondaryColor,
-          size: 30.0,
+        focusNode: myFocusNodeName,
+        controller: signupNameController,
+        keyboardType: TextInputType.text,
+        textCapitalization: TextCapitalization.words,
+        style: TextStyle(fontSize: 20.0, color: Colors.black),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          icon: Icon(
+            Icons.person,
+            color: style.secondaryColor,
+            size: 30.0,
+          ),
+          contentPadding: EdgeInsets.fromLTRB(0, 0, 5, 0),
+          hintText: "Name",
+          hintStyle: TextStyle(fontSize: 22.0),
         ),
-        contentPadding: EdgeInsets.fromLTRB(5, 0, 5, 0),
-        hintText: "Name",
-        hintStyle: TextStyle(fontSize: 22.0),
-      ),
-      validator: (value) {
-        if (value.isEmpty) {
-          return 'This field cannot be empty';
-        }
-      },
-    );
+        validator: (value) {
+          if (value.isEmpty) {
+            return 'This field cannot be empty';
+          }
+        },
+        onFieldSubmitted: (String value) {
+          FocusScope.of(context).requestFocus(myFocusNodeEmail);
+        });
   }
 
   Widget createSignUpEmailTextField() {
     return TextFormField(
-      focusNode: myFocusNodeEmail,
-      controller: signupEmailController,
-      keyboardType: TextInputType.emailAddress,
-      maxLines: 1,
-      style: TextStyle(fontSize: 21.0, color: Colors.black),
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        icon: Icon(
-          Icons.email,
-          color: style.secondaryColor,
-          size: 30.0,
+        focusNode: myFocusNodeEmail,
+        controller: signupEmailController,
+        keyboardType: TextInputType.emailAddress,
+        maxLines: 1,
+        style: TextStyle(fontSize: 20.0, color: Colors.black),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          icon: Icon(
+            Icons.email,
+            color: style.secondaryColor,
+            size: 30.0,
+          ),
+          contentPadding: EdgeInsets.fromLTRB(0, 0, 5, 0),
+          hintText: "Email Address",
+          hintStyle: TextStyle(fontSize: 22.0),
         ),
-        contentPadding: EdgeInsets.fromLTRB(5, 0, 5, 0),
-        hintText: "Email Address",
-        hintStyle: TextStyle(fontSize: 22.0),
-      ),
-      validator: (value) {
-        if (value.isEmpty) {
-          return 'Email cannot be empty';
-        } else {
-          return validateEmail(value);
-        }
-      },
-    );
+        validator: (value) {
+          if (value.isEmpty) {
+            return 'Email cannot be empty';
+          } else {
+            return validateEmail(value);
+          }
+        },
+        onFieldSubmitted: (String value) {
+          FocusScope.of(context).requestFocus(myFocusNodePassword);
+        });
   }
 
   Widget createSignUpPasswordTextField() {
@@ -243,7 +256,7 @@ class _LoginState extends State<Login> {
       focusNode: myFocusNodePassword,
       controller: signupPasswordController,
       obscureText: _obscureTextSignup,
-      style: TextStyle(fontSize: 21.0, color: Colors.black),
+      style: TextStyle(fontSize: 20.0, color: Colors.black),
       decoration: InputDecoration(
         border: InputBorder.none,
         icon: Icon(
@@ -251,7 +264,7 @@ class _LoginState extends State<Login> {
           color: style.secondaryColor,
           size: 30.0,
         ),
-        contentPadding: EdgeInsets.fromLTRB(5, 8, 5, 0),
+        contentPadding: EdgeInsets.fromLTRB(0, 8, 5, 0),
         hintText: "Password",
         hintStyle: TextStyle(fontSize: 22.0),
         suffixIcon: GestureDetector(
@@ -284,7 +297,14 @@ class _LoginState extends State<Login> {
       ),
       color: style.secondaryColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      onPressed: () {},
+      onPressed: () {
+        if (_formKey.currentState.validate()) {
+          print(loginEmailController.text + loginPasswordController.text);
+          showLoading();
+          _presenter.signup(signupNameController.text,
+              signupEmailController.text, signupPasswordController.text);
+        }
+      },
     );
   }
 
@@ -339,14 +359,14 @@ class _LoginState extends State<Login> {
 
   Widget _createSignInPage(BuildContext context) {
     return ListView(
-      physics: const NeverScrollableScrollPhysics(),
+      /* physics: const NeverScrollableScrollPhysics(), */
       children: <Widget>[
         Container(
             height: 50,
-            margin: EdgeInsets.fromLTRB(30, 50, 30, 0),
+            margin: EdgeInsets.fromLTRB(25, 50, 25, 0),
             child: createSignInEmailTextField()),
         Container(
-          margin: EdgeInsets.fromLTRB(30, 5, 30, 0),
+          margin: EdgeInsets.fromLTRB(25, 5, 25, 0),
           child: CustomPaint(
             size: Size(MediaQuery.of(context).size.width, 3),
             painter: linePainter(),
@@ -354,10 +374,10 @@ class _LoginState extends State<Login> {
         ),
         Container(
             height: 50,
-            margin: EdgeInsets.fromLTRB(30, 15, 20, 0),
+            margin: EdgeInsets.fromLTRB(25, 15, 25, 0),
             child: createSignInPasswordTextField()),
         Container(
-          margin: EdgeInsets.fromLTRB(30, 12, 30, 0),
+          margin: EdgeInsets.fromLTRB(25, 12, 25, 0),
           child: CustomPaint(
             size: Size(MediaQuery.of(context).size.width, 3),
             painter: linePainter(),
@@ -377,14 +397,14 @@ class _LoginState extends State<Login> {
 
   Widget _createSignUpPage(BuildContext context) {
     return ListView(
-      physics: const NeverScrollableScrollPhysics(),
+      /* physics: const NeverScrollableScrollPhysics(), */
       children: <Widget>[
         Container(
             height: 50,
-            margin: EdgeInsets.fromLTRB(30, 35, 30, 0),
+            margin: EdgeInsets.fromLTRB(25, 35, 25, 0),
             child: createSignUpDisplayNameTextField()),
         Container(
-          margin: EdgeInsets.fromLTRB(30, 0, 30, 0),
+          margin: EdgeInsets.fromLTRB(25, 0, 25, 0),
           child: CustomPaint(
             size: Size(MediaQuery.of(context).size.width, 3),
             painter: linePainter(),
@@ -392,10 +412,10 @@ class _LoginState extends State<Login> {
         ),
         Container(
             height: 50,
-            margin: EdgeInsets.fromLTRB(30, 20, 30, 0),
+            margin: EdgeInsets.fromLTRB(25, 20, 25, 0),
             child: createSignUpEmailTextField()),
         Container(
-          margin: EdgeInsets.fromLTRB(30, 0, 30, 0),
+          margin: EdgeInsets.fromLTRB(25, 0, 25, 0),
           child: CustomPaint(
             size: Size(MediaQuery.of(context).size.width, 3),
             painter: linePainter(),
@@ -403,10 +423,10 @@ class _LoginState extends State<Login> {
         ),
         Container(
             height: 50,
-            margin: EdgeInsets.fromLTRB(30, 12, 20, 0),
+            margin: EdgeInsets.fromLTRB(25, 12, 25, 0),
             child: createSignUpPasswordTextField()),
         Container(
-          margin: EdgeInsets.fromLTRB(30, 7, 30, 0),
+          margin: EdgeInsets.fromLTRB(25, 7, 25, 0),
           child: CustomPaint(
             size: Size(MediaQuery.of(context).size.width, 3),
             painter: linePainter(),
@@ -422,77 +442,79 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
-    //SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
-    return Form(key: _formKey, child:Scaffold(
-        resizeToAvoidBottomPadding: false,
-        body: ListView(
-          physics: const NeverScrollableScrollPhysics(),
-          children: <Widget>[
-            NotificationListener<OverscrollIndicatorNotification>(
-              onNotification: (overscroll) {
-                overscroll.disallowGlow();
-              },
-              child: SingleChildScrollView(
-                child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height >= 775.0
-                      ? MediaQuery.of(context).size.height
-                      : 775.0,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: <Widget>[
-                      AnimatedContainer(
-                        child: postLogo(logoType),
-                        duration: Duration(milliseconds: 1200),
-                        width: double.maxFinite,
-                        height: logoHeight,
-                        margin: EdgeInsets.only(
-                            left: ml, right: mr, top: mt, bottom: mb),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(30),
+    SystemChrome.setEnabledSystemUIOverlays([]);
+    return Form(
+        key: _formKey,
+        child: Scaffold(
+            key: _scaffoldKey,
+            resizeToAvoidBottomPadding: true,
+            body: ListView(
+              //physics: const NeverScrollableScrollPhysics(),
+              children: <Widget>[
+                NotificationListener<OverscrollIndicatorNotification>(
+                  onNotification: (overscroll) {
+                    overscroll.disallowGlow();
+                  },
+                  child: SingleChildScrollView(
+                    child: Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height >= 775.0
+                          ? MediaQuery.of(context).size.height
+                          : 775.0,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        children: <Widget>[
+                          AnimatedContainer(
+                            child: postLogo(logoType),
+                            duration: Duration(milliseconds: 1200),
+                            width: double.maxFinite,
+                            height: logoHeight,
+                            margin: EdgeInsets.only(
+                                left: ml, right: mr, top: mt, bottom: mb),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(30),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(top: 26.0),
-                        child: _buildMenuBar(context),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: PageView(
-                          controller: _pageController,
-                          onPageChanged: (i) {
-                            if (i == 0) {
-                              setState(() {
-                                tabColor = style.primaryColor;
-                              });
-                            } else if (i == 1) {
-                              setState(() {
-                                tabColor = style.secondaryColor;
-                              });
-                            }
-                          },
-                          children: <Widget>[
-                            new ConstrainedBox(
-                              constraints: const BoxConstraints.expand(),
-                              child: _createSignInPage(context),
+                          Padding(
+                            padding: EdgeInsets.only(top: 26.0),
+                            child: _buildMenuBar(context),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: PageView(
+                              controller: _pageController,
+                              onPageChanged: (i) {
+                                if (i == 0) {
+                                  setState(() {
+                                    tabColor = style.primaryColor;
+                                  });
+                                } else if (i == 1) {
+                                  setState(() {
+                                    tabColor = style.secondaryColor;
+                                  });
+                                }
+                              },
+                              children: <Widget>[
+                                new ConstrainedBox(
+                                  constraints: const BoxConstraints.expand(),
+                                  child: _createSignInPage(context),
+                                ),
+                                new ConstrainedBox(
+                                  constraints: const BoxConstraints.expand(),
+                                  child: _createSignUpPage(context),
+                                ),
+                              ],
                             ),
-                            new ConstrainedBox(
-                              constraints: const BoxConstraints.expand(),
-                              child: _createSignUpPage(context),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ],
-        )));
-
+              ],
+            )));
   }
 
   void _onSignInButtonPress() {
@@ -517,11 +539,7 @@ class _LoginState extends State<Login> {
     });
   }
 
-  void _toggleSignupConfirm() {
-    setState(() {
-      _obscureTextSignupConfirm = !_obscureTextSignupConfirm;
-    });
-  }
+  
 
   String validateEmail(String value) {
     Pattern pattern =
@@ -531,5 +549,49 @@ class _LoginState extends State<Login> {
       return 'Enter Valid Email';
     else
       return null;
+  }
+
+  void showLoading() {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+              content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                ColorLoader3(
+                  dotRadius: 12,
+                  radius: 35,
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 15),
+                  child: Text(
+                    "Loading, please wait..",
+                    style: TextStyle(fontSize: 19),
+                  ),
+                )
+              ]));
+        });
+  }
+
+  @override
+  void onLoginSuccess() {
+    Navigator.of(context).pop();
+    Navigator.of(context).pushReplacementNamed(Home.routeName);
+  }
+
+  @override
+  void onSignupSuccess() {
+    Navigator.of(context).pop();
+    Navigator.of(context).pushReplacementNamed(Home.routeName);
+  }
+
+  @override
+  void showError(String message) {
+    Navigator.of(context).pop();
+    final snackBar = SnackBar(content: Text(message));
+    _scaffoldKey.currentState.showSnackBar(snackBar);
+    print("Error: $message");
   }
 }

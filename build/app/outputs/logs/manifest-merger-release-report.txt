@@ -22,6 +22,10 @@ INJECTED from /home/abdelazeem/Flutter Projects/post/android/app/src/main/Androi
 		INJECTED from /home/abdelazeem/Flutter Projects/post/android/app/src/main/AndroidManifest.xml
 	xmlns:android
 		ADDED from /home/abdelazeem/Flutter Projects/post/android/app/src/main/AndroidManifest.xml:1:11-69
+uses-permission#android.permission.INTERNET
+ADDED from /home/abdelazeem/Flutter Projects/post/android/app/src/main/AndroidManifest.xml:3:1-62
+	android:name
+		ADDED from /home/abdelazeem/Flutter Projects/post/android/app/src/main/AndroidManifest.xml:3:18-60
 application
 ADDED from /home/abdelazeem/Flutter Projects/post/android/app/src/main/AndroidManifest.xml:9:5-32:19
 	android:label
