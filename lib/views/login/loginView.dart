@@ -48,14 +48,15 @@ class _LoginState extends State<Login> implements LoginContract {
   TextEditingController signupEmailController = new TextEditingController();
   TextEditingController signupNameController = new TextEditingController();
   TextEditingController signupPasswordController = new TextEditingController();
-  TextEditingController signupConfirmPasswordController =
-      new TextEditingController();
+  TextEditingController signupConfirmPasswordController = new TextEditingController();
 
   @override
   void dispose() {
     myFocusNodePassword.dispose();
     myFocusNodeEmail.dispose();
     myFocusNodeName.dispose();
+    myFocusNodeEmailLogin.dispose();
+    myFocusNodePasswordLogin.dispose();
     _pageController?.dispose();
     super.dispose();
   }
@@ -79,8 +80,8 @@ class _LoginState extends State<Login> implements LoginContract {
   }
 
   void navigationPage() async {
-    String token = await Preferences.getToken();
-    if (null == token || token.isEmpty) {
+    String id = await Preferences.getId();
+    if (null == id || id.isEmpty) {
       updateUI();
     } else
       Navigator.of(context).pushReplacementNamed(Home.routeName);

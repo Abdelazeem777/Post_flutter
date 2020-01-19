@@ -31,13 +31,22 @@ class _postLogoState extends State<postLogo> {
         bottomRight: Radius.circular(40),
       );
       logoFontSize = 60;
-    } else if (widget.type == 3) {
+    } 
+    else if (widget.type == 3) {
       borderType = BorderRadius.all(
         Radius.circular(0),
       );
       logoFontSize = 55;
       alignmentType = Alignment.topCenter;
-      paddingType = EdgeInsets.only(right: 18, top: 26);
+      paddingType = EdgeInsets.only(right: 18, top: 30);
+    }
+    else if (widget.type == 4) {
+      borderType = BorderRadius.all(
+        Radius.circular(0),
+      );
+      logoFontSize = 55;
+      alignmentType = Alignment.topCenter;
+      paddingType = EdgeInsets.only(right: 18, top: 20);
     }
     //SystemChrome.setEnabledSystemUIOverlays([]);
 
@@ -74,7 +83,7 @@ class _postLogoState extends State<postLogo> {
               /* Color(0xffe86ed0), Color(0xffb1e8ed) */
             ]),
       ),
-      duration: Duration(milliseconds: 1500),
+      duration: Duration(milliseconds: 500),
     );
   }
 }

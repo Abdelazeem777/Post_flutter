@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:fancy_bottom_navigation/fancy_bottom_navigation.dart';
 import 'package:post/styles/styles.dart';
@@ -8,6 +12,9 @@ import 'package:post/views/login/loginView.dart';
 import 'package:post/views/home/homePresenter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:post/apiEndpoint.dart';
+import 'package:post/util/preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class Home extends StatefulWidget {
   static const String routeName = '/Home';
@@ -17,8 +24,12 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> implements HomeContract {
   int currentPage = 1;
+  int logoTypeNum = 3;
+  String userId, userName;
+  DefaultCacheManager manager = new DefaultCacheManager();
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   HomePresenter _presenter;
+  File file;
   final Shader linearGradient = LinearGradient(
     colors: <Color>[Color(0Xffb6f492), Color(0xff338b93)],
   ).createShader(Rect.fromLTWH(0.0, 0.0, 300.0, 50.0));
@@ -27,25 +38,56 @@ class _HomeState extends State<Home> implements HomeContract {
   void initState() {
     super.initState();
     _presenter = HomePresenter(this);
+    getUserId();
+    getUserName();
+    print(userName);
+  }
+
+  Widget createImagePickerButton() {
+    return RaisedButton(
+      padding: EdgeInsets.all(7),
+      color: style.primaryColor,
+      onPressed: _choose,
+      shape: CircleBorder(),
+      child: Icon(
+        Icons.camera_alt,
+        color: Colors.white,
+        size: 30,
+      ),
+    );
   }
 
   Widget createProfileImage() {
-    return Container(
-      width: 170,
-      height: 170,
-
-      decoration: BoxDecoration(border: Border.all(width: 3,color: style.secondaryColor),shape: BoxShape.circle),
-        child: CachedNetworkImage(
-          placeholder: (context, url) => Container(
-            alignment: Alignment.center,
-            child:CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(style.secondaryColor),)),
-          errorWidget: (context, url, error) => Icon(
-            Icons.person,
-            size: 160,
-            color: style.secondaryColor,
-          ),
-          imageUrl: ApiEndPoint.DOWNLOAD_PROFILE_IMAGE,
-    ));
+    return Stack(children: <Widget>[
+      Container(
+          width: 170,
+          height: 170,
+          decoration: BoxDecoration(
+              border: Border.all(width: 6, color: Colors.white),
+              shape: BoxShape.circle),
+          child: ClipOval(
+              child: CachedNetworkImage(
+            fit: BoxFit.fill,
+            useOldImageOnUrlChange: true,
+            imageUrl: ApiEndPoint.DOWNLOAD_PROFILE_IMAGE + userId + ".png",
+            placeholder: (context, url) => Container(
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(style.secondaryColor),
+                )),
+            errorWidget: (context, url, error) => Icon(
+              Icons.person,
+              size: 155,
+              color: style.secondaryColor,
+            ),
+          ))),
+      Positioned(
+        bottom: 0,
+        right: -20,
+        child: createImagePickerButton(),
+      ),
+    ]);
   }
 
   Widget createLogOutButton() {
@@ -64,10 +106,16 @@ class _HomeState extends State<Home> implements HomeContract {
 
   Widget createProfileWidget() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: <Widget>[
         Container(
           child: createProfileImage(),
+        ),
+        Container(
+          margin: EdgeInsets.all(10),
+          child: Text(
+            userName,
+            style: TextStyle(fontSize: 26),
+          ),
         ),
         Container(
           margin: EdgeInsets.fromLTRB(0, 0, 0, 10),
@@ -79,7 +127,7 @@ class _HomeState extends State<Home> implements HomeContract {
 
   Widget createAppBar() {
     return PreferredSize(
-      child: postLogo(3),
+      child: postLogo(logoTypeNum),
       preferredSize: Size(MediaQuery.of(context).size.width, 180),
     );
   }
@@ -94,16 +142,21 @@ class _HomeState extends State<Home> implements HomeContract {
         bottom: 0,
         child: Container(
           decoration: BoxDecoration(
-              color: Color(0xffffffff),
-              borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40), topRight: Radius.circular(40))),
+            color: Color(0xffffffff),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(40),
+              topRight: Radius.circular(40),
+            ),
+          ),
           child: Center(
               child: <Widget>[
             Text(
               'Search page still under developing',
             ),
             Text("Home page still under developing"),
-            createProfileWidget(),
+            Container(
+                transform: Matrix4.translationValues(0.0, -23.0, 0.0),
+                child: createProfileWidget()),
           ].elementAt(currentPage)),
         ),
       )
@@ -122,6 +175,7 @@ class _HomeState extends State<Home> implements HomeContract {
       ],
       onTabChangedListener: (position) {
         setState(() {
+          logoTypeNum = (position == 1) ? 3 : 4;
           currentPage = position;
         });
       },
@@ -133,22 +187,32 @@ class _HomeState extends State<Home> implements HomeContract {
     SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
 
     return Scaffold(
-      /* AppBar(
-                    backgroundColor: style.accentColor,
-                    title: Center(
-                      child: Text(
-                        "Post",
-                        style: TextStyle(foreground: Paint()..shader = linearGradient,
-                        fontSize: 46,
-                        fontFamily: 'Lucida',
-                        ),
-                      ),
-                    ),
-                  ), */
       body: createHomePage(),
       bottomNavigationBar: createNavBar(),
       key: _scaffoldKey,
     );
+  }
+
+  void _choose() async {
+    file = await ImagePicker.pickImage(source: ImageSource.gallery);
+    _upload();
+  }
+
+  void _upload() {
+    if (file == null) return;
+    String base64Image = base64Encode(file.readAsBytesSync());
+    print(base64Image);
+    http.post(ApiEndPoint.UPLOAD_PROFILE_IMAGE, body: {
+      "image": base64Image,
+      "name": userId,
+    }).then((res) {
+      setState(() {
+        manager.emptyCache();
+        print(res.statusCode);
+      });
+    }).catchError((err) {
+      print(err);
+    });
   }
 
   @override
@@ -163,5 +227,13 @@ class _HomeState extends State<Home> implements HomeContract {
 
     _scaffoldKey.currentState.showSnackBar(snackBar);
     print("Error: $message");
+  }
+
+  void getUserId() async {
+    userId = await Preferences.getId();
+  }
+
+  void getUserName() async {
+    userName = await Preferences.getUserName();
   }
 }

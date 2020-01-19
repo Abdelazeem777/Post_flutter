@@ -27,14 +27,15 @@ class UsersRepositoryImpl implements UsersRepository {
     return Observable.fromFuture(_networkService.post(ApiEndPoint.LOG_IN, data))
         .flatMap((res) {
           Map resultMap=_networkService.convertJsonToMap(res.body);
-      if (resultMap["statusCode"] != 200 || null == resultMap["statusCode"]) {
+      if (res.statusCode != 200 || null == res.statusCode) {
         throw new RequestException(resultMap["message"]);
       }
       else{
-      final String userName = resultMap["user_name"];
-      Preferences.getUserName(userName);
-      final String token = resultMap["id"];
-      return Preferences.setToken(token);
+      final String userName = resultMap["username"];
+      Preferences.setUserName(userName);
+      print(userName);
+      final String id = resultMap["id"];
+      return Preferences.setId(id);
       }
     });
   }
@@ -45,14 +46,14 @@ class UsersRepositoryImpl implements UsersRepository {
     return Observable.fromFuture(_networkService.post(ApiEndPoint.SIGN_UP, data))
         .flatMap((res) {
           Map resultMap=_networkService.convertJsonToMap(res.body);
-      if (resultMap["statusCode"] != 200 || null == resultMap["statusCode"]) {
+      if (res.statusCode != 200 || null == res.statusCode) {
         throw new RequestException(resultMap["message"]);
       }
       else{
-      final String userName = resultMap["user_name"];
-      Preferences.getUserName(userName);
-      final String token = resultMap["id"];
-      return Preferences.setToken(token);
+      final String userName = resultMap["username"];
+      Preferences.setUserName(userName);
+      final String id = resultMap["id"];
+      return Preferences.setId(id);
       }
     });
   }
